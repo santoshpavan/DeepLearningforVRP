@@ -12,12 +12,13 @@ import time
 
 # getting data from tsplib95 data
 problem = tsplib95.load_problem('Vrp-All/A/A-n32-k5.vrp')
-fig, ax = plt.subplots(figsize=(10,7))
+fig, ax = plt.subplots()
 G = problem.get_graph()
 edge_list = list(problem.get_edges())
 e = []
 # to keep the position of the nodes in the plot fixed
-pos = nx.spring_layout(G)
+pos = problem.node_coords
+
 def update(num):
     ax.clear()
     e.append(edge_list[num+1])
