@@ -16,14 +16,17 @@ fig, ax = plt.subplots()
 G = problem.get_graph()
 edge_list = list(problem.get_edges())
 e = []
+node_list = list(problem.get_nodes())
+node_color_values = [(0,0,1) for i in range(len(node_list))]
 # to keep the position of the nodes in the plot fixed
 pos = problem.node_coords
 
 def update(num):
     ax.clear()
-    e.append(edge_list[num+1])
-    nx.draw(G, pos=pos, with_labels = True, edgelist=e, edge_color='red')
-    ax.set_title("Frame %d:    "%(num+1), fontweight="bold")
+    if num<=len(node_list):
+        node_color_values[num] = (1,0,0)
+    #edge color is white to ignore it
+    nx.draw(G, pos=pos, with_labels = False, node_color=node_color_values, node_size=20, edge_color=(1,1,1))
 
 ani = FuncAnimation(fig, update, frames=len(edge_list))
 plt.show()
