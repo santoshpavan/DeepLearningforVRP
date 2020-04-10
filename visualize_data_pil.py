@@ -23,9 +23,13 @@ pos = problem.node_coords
 # the image size is (640, 480)
 env = np.zeros((100,100,3), dtype=np.uint8)
 color = (255,255,255)
+path = [5,6,8]
 for i in pos.keys():
     coods = pos.get(i)
     env[int(coods[0])][int(coods[1])] =  color
+for visited_node in path:
+    coods = pos.get(visited_node)
+    env[int(coods[0])][int(coods[1])] = (255,0,0)
 img = Image.fromarray(env,'RGB')
 img =img.resize((640,480))
 cv2.imshow("image", np.array(img))
