@@ -164,6 +164,7 @@ class VRPEnvironment:
         self.episode_step += 1
         # moving the trucks for the action
         self.truck.action(action)
+        self.truck.capacity -= self.node_demands.get(action)
         # other truck actions
 
         if self.return_images:
@@ -209,13 +210,21 @@ class VRPEnvironment:
             node_coods = self.node_positions.get(node)
             env[int(node_coods[0])][int(node_coods[1])] = (255,255,255)
         if self.truck.path: #if there are elements in the path
-            for visited_node in self.truck.path:
+            for visited_node in set(self.truck.path):
                 node_coods = self.node_positions.get(visited_node)
                 #print(node_coods)
                 #print(visited_node)
+                #print(self.truck.path)
                 #print(len(env))
                 #print("--------")
-                env[int(node_coods[0])][int(node_coods[1])] = (255,0,0)
+                try:
+                    env[int(node_coods[0])][int(node_coods[1])] = (255,0,0)
+                except:
+                    print(node_coods)
+                    print(visited_node)
+                    print(self.truck.path)
+                    print(len(env))
+                    #print("--------")
         img = Image.fromarray(env, 'RGB')
         return img
 
@@ -225,7 +234,6 @@ class VRPEnvironment:
         cv2.imshow("image", np.array(img))
         cv2.waitKey(1)
 
-        
 environment = VRPEnvironment()
 
 # model related constants
@@ -323,7 +331,7 @@ class DQNAgent:
         # if the counter reaches the required value...
         # update the target n/w with weights of main n/w
         if self.target_update_counter > update_target_every:
-            self.target_model.set_weights(self.main_model.get(weights()))
+            self.target_model.set_weights(self.main_model.get_weights())
             self.target_update_counter = 0
     
     # query the main n/w for q values given the current observation space
@@ -369,3 +377,4 @@ for episode in tqdm(range(1, environment.no_of_episodes + 1), ascii=True, unit='
         if environment.epsilon > environment.min_epsilon:
             environment.epsilon *= environment.epsilon_decay
             environment.epsilon = max(environment.min_epsilon, environment.epsilon)
+    print (environment.truck.path)
