@@ -205,7 +205,7 @@ class VRPEnvironment:
         return self.problem.wfunc(source_node, destination_node)
 
     def get_image(self):
-        # the initiated rgb image of the given size
+        # the initiated rgb image of the given size. image_size = 100
         env = np.zeros((self.image_size, self.image_size, 3), dtype=np.uint8)
         for node in self.node_positions.keys():
             node_coods = self.node_positions.get(node)
@@ -218,13 +218,13 @@ class VRPEnvironment:
                 #print(self.truck.path)
                 #print(len(env))
                 #print("--------")
-                try:
-                    env[int(node_coods[0])][int(node_coods[1])] = (255,0,0)
-                except:
-                    print(node_coods)
-                    print(visited_node)
-                    print(self.truck.path)
-                    print(len(env))
+                #try: #HAVING 0 HERE WAS CAUSING ERRORS! IGNORING 0 FOR NOW- STUPID
+                env[int(node_coods[0])][int(node_coods[1])] = (255,0,0)
+                #except:
+                    #print(node_coods)
+                    #print(visited_node)
+                    #print(self.truck.path)
+                    #print(len(env))
                     #print("--------")
         img = Image.fromarray(env, 'RGB')
         return img
@@ -346,7 +346,7 @@ aggregrate_stats_every = 50
 
 # iterate over the episodes
 for episode in tqdm(range(1, environment.no_of_episodes + 1), ascii=True, unit='episodes'):
-    print(episode)
+    #print(episode)
     # Restarting episode - reset episode reward and step number
     episode_reward = 0
     step = 1
@@ -382,4 +382,4 @@ for episode in tqdm(range(1, environment.no_of_episodes + 1), ascii=True, unit='
             environment.epsilon = max(environment.min_epsilon, environment.epsilon)
     print("Path is:")
     print(environment.truck.path)
-    print("Penalty is:"+str())
+    print("P and R is:"+str(reward))
