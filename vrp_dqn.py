@@ -38,7 +38,11 @@ class Truck:
         self.id = id
         self.color = color
         self.path = [] #this has the list of nodes it has visited
-        self.visit_depo()
+        self.truck_capacity = capacity #the max capacity
+        self.capacity = capacity
+        #self.visit_depo()
+        self.prev_node = None
+        self.node = 1 #starts from the depo
 
     def action(self, choice):
         # the number of choice of actions are the number of nodes-1
@@ -50,26 +54,28 @@ class Truck:
         #     self.visit_depo()
         self.move(choice)
 
-    def move(self, to_node_value=False):
+    def move(self, to_node_value):
         # node_list_copy = copy.deepcopy(node_list)
         # node_list_copy.remove(1)
         # select a random node to go to
-        if not to_node_value:
-            to_node_value = random.choice(self.node_list)
+        #if not to_node_value: #to_node_value is False by default
+        #    to_node_value = random.choice(self.node_list)
         if to_node_value == 1:
             self.visit_depo()
+        self.prev_node = self.node
         self.node = to_node_value
         self.path.append(to_node_value)
         # when invoked update the demand of the node
         # update the demand of the node
 
     def visit_depo(self):
-        # depo need not be saved into the path
+        self.prev_node = self.node
         self.node = 1 #here it is 1
-        self.capacity = truck_capacity #truck capacity reset
+        self.capacity = self.truck_capacity #truck capacity reset
+        self.path.append(1)
     
-    def path(self, node_value):
-        self.path.append(node_value)
+    #def path(self, node_value):
+    #    self.path.append(node_value)
 
     def get_node(self):
         return self.node
@@ -80,7 +86,8 @@ class Truck:
 class VRPEnvironment:
     # environment related constants
     #https://matplotlib.org/3.2.1/api/_as_gen/matplotlib.pyplot.figure.html
-    observation_space = (640,480,3)
+    #observation_space = (640,480,3)
+    observation_space = (100,100,3)
     # penalty and rewards
     non_positive_capacity_penalty = 1000
     zero_demand_penalty = 200 #truck goes to a zero demand node - except 1
@@ -107,8 +114,8 @@ class VRPEnvironment:
         9:(0.5,1,0.5),
         10:(1,0.5,0.5)
     }
-    self.return_images = True
-    self.image_size = 100
+    return_images = True
+    image_size = 100
 
     def __init__(self):
         # 1. Extract the tsplib95 file problem
@@ -117,7 +124,7 @@ class VRPEnvironment:
         # 2. Create a networkx graph out of the problem. //will be plotting this
         nx_graph = self.problem.get_graph()
         self.edge_list = list(self.problem.get_edges()) #[(,)]
-        node_positions = self.problem.node_coords #dict
+        self.node_positions = self.problem.node_coords #dict
         # the list of nodes
         self.node_list = list(self.problem.get_nodes())
         self.action_space = len(self.node_list) #the number of choices including staying put
@@ -134,7 +141,7 @@ class VRPEnvironment:
         # 4. Extract the necessary data about the trucks. //no of trucks, depot_section, capacity
         truck_capacity = self.problem.capacity
         # trying hardcoding for now
-        self.truck = Truck(truck_capacity, 1, truck_colors.get(3))
+        self.truck = Truck(truck_capacity, 1, self.truck_colors.get(3))
 
         self.episode_step = 0
 
@@ -166,38 +173,49 @@ class VRPEnvironment:
         # assinging the rewards and penalties
         # checking if the demands have been satisfied
         if sum(list(self.node_demands.values())) == 0:
-            reward = completion_reward
+            self.reward = self.completion_reward
         else:
             self.reward = self.movement_penalty(self.truck) #edge weight
             # rewards for other trucks
             self.node_penalty(self.truck) #other penalties
             # penalties for other trucks
         done = False
-        if reward == completion_reward:
+        if self.reward == self.completion_reward:
             done = True
 
-        return new_observation, reward, done
+        return new_observation, self.reward, done
 
     def node_penalty(self, truck):
         if self.node_demands[self.truck.get_node()] == 0 and self.truck.get_node() != 1:
-            self.reward += -zero_demand_penalty #200
+            self.reward += -(self.zero_demand_penalty) #200
         if self.truck.get_capacity() <= 0:
            self.reward += -non_positive_capacity_penalty #1000
 
     def movement_penalty(self, truck):
-        source_node = self.truck.path[-2]
-        destination_node = self.truck.path[-1]
+        #print(self.truck.path)
+        #print("-------")
+        if self.truck.prev_node:
+            source_node = self.truck.prev_node
+            destination_node = self.truck.node
+        else:
+            source_node = self.truck.node
+            destination_node = self.truck.node
         return self.problem.wfunc(source_node, destination_node)
 
     def get_image(self):
         # the initiated rgb image of the given size
         env = np.zeros((self.image_size, self.image_size, 3), dtype=np.uint8)
-        for node in node_positions.keys():
-            node_coods = node_positions.get(node)
+        for node in self.node_positions.keys():
+            node_coods = self.node_positions.get(node)
             env[int(node_coods[0])][int(node_coods[1])] = (255,255,255)
-        for visited_node in self.truck.path:
-            node_coods = node_positions.get(visited_node)
-            env[int(node_coods)[0]][int(node_coods[1])] = (255,0,0)
+        if self.truck.path: #if there are elements in the path
+            for visited_node in self.truck.path:
+                node_coods = self.node_positions.get(visited_node)
+                #print(node_coods)
+                #print(visited_node)
+                #print(len(env))
+                #print("--------")
+                env[int(node_coods[0])][int(node_coods[1])] = (255,0,0)
         img = Image.fromarray(env, 'RGB')
         return img
 
@@ -217,6 +235,7 @@ considering_training_length = 50_000 #the no of steps considered for training
 min_training_length = 100 #the no of steps used for training
 episodes = 20_000
 update_target_every = 5 #terminal states (end of episodes)
+min_replay_memory_size = 1000 #min no of steps in a memory to start training
 
 class DQNAgent:
     def __init__(self):
@@ -260,6 +279,9 @@ class DQNAgent:
         self.replay_memory.append(step)
     
     def train(self, terminal_state, step):
+        # start training only when we have a certain number of samples already saved
+        if len(self.replay_memory)< min_replay_memory_size:
+            return
         # get the minibatch of the samples from the replay table
         minibatch = random.sample(self.replay_memory, min_training_length)
 
@@ -310,13 +332,17 @@ class DQNAgent:
 
 agent = DQNAgent()
 
+show_preview = False
+aggregrate_stats_every = 50
+
 # iterate over the episodes
-for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
+for episode in tqdm(range(1, environment.no_of_episodes + 1), ascii=True, unit='episodes'):
+    print(episode)
     # Restarting episode - reset episode reward and step number
     episode_reward = 0
     step = 1
     # Reset environment and get initial state
-    current_state = environment.reset()
+    current_state = environment.reset_environment()
     # Reset flag and start iterating until episode ends
     done = False
     while not done:
@@ -326,12 +352,12 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
             action = np.argmax(agent.get_qs(current_state))
         else:
             # Get random action
-            action = np.random.randint(0, environment.action_space)
+            action = np.random.randint(1, environment.action_space)
         
         new_state, reward, done = environment.step(action)
         # Transform new continous state to new discrete state and count reward
         episode_reward += reward
-        if SHOW_PREVIEW and not episode % AGGREGATE_STATS_EVERY:
+        if show_preview and not episode % aggregrate_stats_every:
             env.render()
         # Every step we update replay memory and train main network
         agent.update_replay_memory((current_state, action, reward, new_state, done))
@@ -342,4 +368,4 @@ for episode in tqdm(range(1, EPISODES + 1), ascii=True, unit='episodes'):
         # Decay the Epsilon
         if environment.epsilon > environment.min_epsilon:
             environment.epsilon *= environment.epsilon_decay
-            environment.epsilon = max(envrionment.min_epsilon, environment.epsilon)
+            environment.epsilon = max(environment.min_epsilon, environment.epsilon)
