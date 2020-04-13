@@ -164,6 +164,7 @@ class VRPEnvironment:
         self.episode_step += 1
         # moving the trucks for the action
         self.truck.action(action)
+        #print("action="+str(action)+"\n++++++")
         self.truck.capacity -= self.node_demands.get(action)
         # other truck actions
 
@@ -188,9 +189,9 @@ class VRPEnvironment:
 
     def node_penalty(self, truck):
         if self.node_demands[self.truck.get_node()] == 0 and self.truck.get_node() != 1:
-            self.reward += -(self.zero_demand_penalty) #200
+            self.reward += -self.zero_demand_penalty #200
         if self.truck.get_capacity() <= 0:
-           self.reward += -non_positive_capacity_penalty #1000
+           self.reward += -self.non_positive_capacity_penalty #1000
 
     def movement_penalty(self, truck):
         #print(self.truck.path)
@@ -358,11 +359,13 @@ for episode in tqdm(range(1, environment.no_of_episodes + 1), ascii=True, unit='
         if np.random.random() > environment.epsilon:
             # Get action from Q table
             action = np.argmax(agent.get_qs(current_state))
+            #print("action="+str(action)+"\n++++++")
         else:
             # Get random action
             action = np.random.randint(1, environment.action_space)
-        
-        new_state, reward, done = environment.step(action)
+
+        if action != 0: #JUST IGNORING 0. MIGHT BE STUPID!
+            new_state, reward, done = environment.step(action)
         # Transform new continous state to new discrete state and count reward
         episode_reward += reward
         if show_preview and not episode % aggregrate_stats_every:
@@ -377,4 +380,6 @@ for episode in tqdm(range(1, environment.no_of_episodes + 1), ascii=True, unit='
         if environment.epsilon > environment.min_epsilon:
             environment.epsilon *= environment.epsilon_decay
             environment.epsilon = max(environment.min_epsilon, environment.epsilon)
-    print (environment.truck.path)
+    print("Path is:")
+    print(environment.truck.path)
+    print("Penalty is:"+str())
