@@ -123,7 +123,7 @@ class VRPEnvironment:
     # all the demands are satisfied i.e. task will always be success...
     # The penalty of the achievement needs to go down.
     failing_task_penalty = 1000 #trucks fail to complete the task
-    completion_reward = 100 #trucks complete the task
+    completion_reward = 1000 #trucks complete the task
     # exploration settings
     epsilon = 1
     epsilon_decay = 0.999
